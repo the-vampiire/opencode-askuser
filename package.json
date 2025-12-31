@@ -32,7 +32,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/obsessed-devs/opencode-askuser"
+    "url": "https://github.com/the-vampiire/opencode-askuser"
   },
   "peerDependencies": {
     "@opencode-ai/plugin": ">=1.0.0"
