@@ -1,5 +1,4 @@
-export { AskUserPlugin } from "./plugin"
-export { createAskUserQuestionTool } from "./tool"
-export type { Question, QuestionOption, AskUserQuestionParams } from "./types"
+export type { Question, QuestionOption, AskUserQuestionParams } from "./types.js"
 
-export { AskUserPlugin as default } from "./plugin"
+import { AskUserPlugin } from "./plugin.js"
+export default AskUserPlugin

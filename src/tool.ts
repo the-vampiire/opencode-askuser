@@ -1,10 +1,10 @@
-import type { ToolDefinition, UIHelpers } from "@opencode-ai/plugin"
+import { tool, type ToolContext, type UIHelpers } from "@opencode-ai/plugin"
 import {
   AskUserQuestionParamsSchema,
   type AskUserQuestionParams,
   type Question,
   type QuestionResponse,
-} from "./types"
+} from "./types.js"
 
 const TOOL_DESCRIPTION = `Present structured questions to gather user input during planning or clarification.
 
@@ -23,36 +23,39 @@ type SessionContext = {
   callID?: string
 }
 
-export function createAskUserQuestionTool(ui: UIHelpers): ToolDefinition {
-  return {
+export function createAskUserQuestionTool(ui: UIHelpers) {
+  return tool({
     description: TOOL_DESCRIPTION,
-    parameters: AskUserQuestionParamsSchema,
+    args: AskUserQuestionParamsSchema.shape,
 
-    async execute({ parameters, sessionID, messageID, callID }): Promise<{
-      title: string
-      output: string
-      metadata?: Record<string, unknown>
-    }> {
-      const { questions } = parameters as AskUserQuestionParams
-      const ctx: SessionContext = { sessionID, messageID, callID }
+    async execute(args: AskUserQuestionParams, context: ToolContext): Promise<string> {
+      const { questions } = args
+      const ctx: SessionContext = { sessionID: context.sessionID, messageID: context.messageID }
 
-      const questionsWithIds = questions.map((q, i) => ({
+      const questionsWithIds = questions.map((q: Question, i: number) => ({
         ...q,
         id: q.id ?? `q${i + 1}`,
       }))
 
-      const fields = questionsWithIds.flatMap((q) => {
+      type QuestionWithId = Question & { id: string }
+
+      const fields = questionsWithIds.flatMap((q: QuestionWithId) => {
+        const mappedOptions = q.options.map((opt: { label: string; value?: string; description?: string }) => ({
+          value: opt.value ?? opt.label,
+          label: opt.label,
+          description: opt.description,
+        }))
+
         const baseField = q.multiSelect
           ? {
               type: "multiselect" as const,
               id: q.id,
               label: q.header,
               description: q.question,
-              options: q.options.map((opt) => ({
-                value: opt.value ?? opt.label,
-                label: opt.label,
-                description: opt.description,
-              })),
+              options: [
+                ...mappedOptions,
+                ...(q.allowOther ? [{ value: "__other__", label: "Other (specify)" }] : []),
+              ],
             }
           : {
               type: "select" as const,
@@ -60,16 +63,12 @@ export function createAskUserQuestionTool(ui: UIHelpers): ToolDefinition {
               label: q.header,
               description: q.question,
               options: [
-                ...q.options.map((opt) => ({
-                  value: opt.value ?? opt.label,
-                  label: opt.label,
-                  description: opt.description,
-                })),
+                ...mappedOptions,
                 ...(q.allowOther ? [{ value: "__other__", label: "Other (specify)" }] : []),
               ],
             }
 
-        if (q.allowOther && !q.multiSelect) {
+        if (q.allowOther) {
           return [
             baseField,
             {
@@ -84,15 +83,16 @@ export function createAskUserQuestionTool(ui: UIHelpers): ToolDefinition {
         return [baseField]
       })
 
+      const questionCount = questionsWithIds.length
       const formResult = await ui.form(ctx, {
-        title: "Please answer these questions",
+        title: questionCount === 1 ? "Please answer this question" : "Please answer these questions",
         description: "Your responses will help guide the implementation.",
         fields,
-        submitLabel: "Submit Answers",
+        submitLabel: questionCount === 1 ? "Submit Answer" : "Submit Answers",
         cancelLabel: "Skip",
       })
 
-      const responses: QuestionResponse[] = questionsWithIds.map((q) => {
+      const responses: QuestionResponse[] = questionsWithIds.map((q: QuestionWithId) => {
         const value = formResult[q.id]
         const selected = Array.isArray(value) ? value : value ? [value] : []
         const hasOther = selected.includes("__other__")
@@ -108,13 +108,9 @@ export function createAskUserQuestionTool(ui: UIHelpers): ToolDefinition {
 
       const output = formatResponses(questionsWithIds, responses)
 
-      return {
-        title: `Asked ${questions.length} question${questions.length > 1 ? "s" : ""}`,
-        output,
-        metadata: { responses },
-      }
+      return output
     },
-  }
+  })
 }
 
 function formatResponses(
@@ -130,14 +126,13 @@ function formatResponses(
     lines.push(`### ${response.header}`)
     lines.push(`**Question**: ${question.question}`)
 
-    if (response.selected.length > 0) {
-      if (response.selected.length === 1) {
-        lines.push(`**Selected**: ${response.selected[0]}`)
-      } else {
-        lines.push(`**Selected**:`)
-        for (const sel of response.selected) {
-          lines.push(`- ${sel}`)
-        }
+    if (response.selected.length === 1) {
+      lines.push(`**Selected**: ${response.selected[0]}`)
+    }
+    if (response.selected.length > 1) {
+      lines.push(`**Selected**:`)
+      for (const sel of response.selected) {
+        lines.push(`- ${sel}`)
       }
     }
 

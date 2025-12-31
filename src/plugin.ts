@@ -1,5 +1,5 @@
 import type { Plugin, PluginInput } from "@opencode-ai/plugin"
-import { createAskUserQuestionTool } from "./tool"
+import { createAskUserQuestionTool } from "./tool.js"
 
 export const AskUserPlugin: Plugin = async (input: PluginInput) => {
   const { ui } = input

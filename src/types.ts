@@ -1,4 +1,7 @@
-import { z } from "zod"
+import { tool } from "@opencode-ai/plugin"
+
+// Use the same zod instance as the plugin (zod 4.x)
+const z = tool.schema
 
 export const QuestionOptionSchema = z.object({
   label: z.string().describe("Display label for the option"),
@@ -23,9 +26,24 @@ export const AskUserQuestionParamsSchema = z.object({
   questions: z.array(QuestionSchema).min(1).max(6).describe("1-6 questions to ask the user"),
 })
 
-export type QuestionOption = z.infer<typeof QuestionOptionSchema>
-export type Question = z.infer<typeof QuestionSchema>
-export type AskUserQuestionParams = z.infer<typeof AskUserQuestionParamsSchema>
+export type QuestionOption = {
+  label: string
+  value?: string
+  description?: string
+}
+
+export type Question = {
+  id?: string
+  question: string
+  header: string
+  options: QuestionOption[]
+  multiSelect: boolean
+  allowOther: boolean
+}
+
+export type AskUserQuestionParams = {
+  questions: Question[]
+}
 
 export type QuestionResponse = {
   questionId: string
