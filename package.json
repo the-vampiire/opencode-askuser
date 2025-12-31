@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json.schemastore.org/package.json",
+  "name": "@obsessed-devs/opencode-askuser",
+  "version": "0.1.0",
+  "description": "AskUserQuestion tool for OpenCode - structured user input using UI Intent abstraction",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "bun test",
+    "prepublishOnly": "bun run build"
+  },
+  "keywords": [
+    "opencode",
+    "plugin",
+    "askuserquestion",
+    "user-input",
+    "ai-coding"
+  ],
+  "author": "obsessed-devs",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/obsessed-devs/opencode-askuser"
+  },
+  "peerDependencies": {
+    "@opencode-ai/plugin": ">=1.0.0"
+  },
+  "dependencies": {
+    "zod": "^3.22.0"
+  },
+  "devDependencies": {
+    "@opencode-ai/plugin": "^1.0.0",
+    "@types/bun": "^1.0.0",
+    "typescript": "^5.0.0"
+  }
+}
